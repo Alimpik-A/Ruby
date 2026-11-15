@@ -1,0 +1,3468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruby</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 98vw;
+            height: 98vh;
+            border: 2px solid rgba(255, 50, 50, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .health-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 200px;
+            height: 25px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #ff3333;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+
+        .health-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #ff0000, #ff5555);
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        .stamina-bar {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            width: 200px;
+            height: 15px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #33aaff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+        }
+
+        .stamina-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, #33aaff, #88ddff);
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+
+        .special-bar {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            width: 200px;
+            height: 15px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #ff3333;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.5);
+        }
+
+        .special-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #ff3333, #ff6666);
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+
+        .wave-bar {
+            position: absolute;
+            top: 120px;
+            left: 20px;
+            width: 200px;
+            height: 15px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 2px solid #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            display: none; /* Скрыт до открытия способности */
+        }
+
+        .wave-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #ffffff, #cccccc);
+            border-radius: 6px;
+            transition: width 0.3s;
+        }
+
+        .timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: #ffcc00;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+            letter-spacing: 2px;
+            font-weight: bold;
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 100, 100, 0.3);
+        }
+
+        .glow {
+            animation: glow 1.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 5px rgba(255, 50, 50, 0.7);
+            }
+            to {
+                box-shadow: 0 0 20px rgba(255, 50, 50, 1), 0 0 30px rgba(255, 50, 50, 0.7);
+            }
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .game-over-text {
+            font-size: 72px;
+            color: #ff3333;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            margin-bottom: 30px;
+            letter-spacing: 5px;
+        }
+
+        .restart-btn {
+            padding: 15px 40px;
+            font-size: 24px;
+            background: rgba(255, 50, 50, 0.2);
+            color: white;
+            border: 2px solid #ff3333;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 2px;
+        }
+
+        .restart-btn:hover {
+            background: rgba(255, 50, 50, 0.5);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+        }
+        
+        .boss-warning {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #3366ff;
+            text-shadow: 0 0 20px rgba(51, 102, 255, 0.8);
+            letter-spacing: 5px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .ability-unlocked {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            letter-spacing: 3px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div class="health-bar">
+                <div class="health-fill" id="healthFill"></div>
+            </div>
+            <div class="stamina-bar">
+                <div class="stamina-fill" id="staminaFill"></div>
+            </div>
+            <div class="special-bar">
+                <div class="special-fill" id="specialFill"></div>
+            </div>
+            <div class="wave-bar" id="waveBar">
+                <div class="wave-fill" id="waveFill"></div>
+            </div>
+            <div class="timer" id="timer">00:00</div>
+            <div class="controls-hint">Управление: Стрелки - движение, E - атака, Q - супер-атака, F - ударная волна</div>
+            <div class="boss-warning" id="bossWarning">БОСС ПРИБЫЛ!</div>
+            <div class="ability-unlocked" id="abilityUnlocked">НОВАЯ СПОСОБНОСТЬ ОТКРЫТА!</div>
+        </div>
+        <div id="gameOver">
+            <div class="game-over-text">ПОРАЖЕНИЕ</div>
+            <button class="restart-btn" onclick="restartGame()">ИГРАТЬ СНОВА</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('gameContainer');
+        
+        // Установка размеров canvas
+        function resizeCanvas() {
+            canvas.width = gameContainer.clientWidth;
+            canvas.height = gameContainer.clientHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Основные переменные игры
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 20,
+            speed: 10,
+            color: '#ff3333',
+            health: 10,
+            maxHealth: 10,
+            stamina: 5,
+            maxStamina: 10,
+            specialCharge: 0,
+            specialMax: 6,
+            waveUnlocked: false, // Новая способность разблокирована?
+            waveCharge: 0,       // Заряд ударной волны
+            waveMaxCharge: 30,   // Нужно 30 убийств для зарядки
+            waveKills: 0,        // Счетчик убийств для ударной волны
+            lastSpecialUse: 0
+        };
+        
+        let enemies = [];
+        let crosses = [];
+        let miniBosses = []; // Первый тип мини-босса (большой, с полукруговой атакой)
+        let shooterBosses = []; // Второй тип мини-босса (быстрый, стреляет сюрикенами)
+        let waveBosses = []; // Третий тип мини-босса (с ударной волной)
+        let pinkBosses = []; // Четвертый тип мини-босса (розовый, появляется после 5 убитых мини-боссов)
+        let finalBoss = null; // Полноценный босс
+        let attacks = [];
+        let enemyAttacks = [];
+        let shooterBossAttacks = []; // Атаки второго мини-босса (сюрикены)
+        let waveBossAttacks = []; // Атаки третьего мини-босса (ударные волны)
+        let pinkBossAttacks = []; // Атаки четвертого мини-босса (сюрикены)
+        let finalBossShurikenAttacks = []; // Сюрикены босса
+        let finalBossMeleeAttacks = []; // Ближние атаки босса
+        let waveAttacks = []; // Ударные волны игрока
+        let particles = [];
+        let specialAttacks = [];
+        
+        // Время и сложность
+        let gameTime = 0;
+        let enemySpawnRate = 1000;
+        let lastEnemySpawn = 0;
+        let lastHealthRegen = 0;
+        let lastStaminaRegen = 0;
+        let lastCrossSpawn = 0;
+        let lastMiniBossSpawn = 0;
+        let lastShooterBossSpawn = 0;
+        let lastWaveBossSpawn = 0;
+        let bossSpawned = false; // Флаг появления босса
+        let bossWarningTime = 0; // Время показа предупреждения о боссе
+        let abilityUnlockedTime = 0; // Время показа сообщения о новой способности
+        
+        // Счетчики
+        let miniBossKillCount = 0; // Счетчик убитых мини-боссов
+        let waveKillCount = 0; // Счетчик убийств для ударной волны
+        
+        // Состояние игры
+        let gameOver = false;
+        let keys = {};
+        
+        // Таймер игры
+        let gameStartTime = Date.now();
+        
+        // Направления для супер-атаки (8 направлений)
+        const directions = [
+            {x: 1, y: 0},
+            {x: 0.707, y: 0.707},
+            {x: 0, y: 1},
+            {x: -0.707, y: 0.707},
+            {x: -1, y: 0},
+            {x: -0.707, y: -0.707},
+            {x: 0, y: -1},
+            {x: 0.707, y: -0.707}
+        ];
+        
+        // Обновление UI
+        function updateUI() {
+            // Здоровье
+            const healthPercent = (player.health / player.maxHealth) * 100;
+            document.getElementById('healthFill').style.width = `${healthPercent}%`;
+            
+            // Стамина
+            const staminaPercent = (player.stamina / player.maxStamina) * 100;
+            document.getElementById('staminaFill').style.width = `${staminaPercent}%`;
+            
+            // Супер-атака
+            const specialPercent = (player.specialCharge / player.specialMax) * 100;
+            document.getElementById('specialFill').style.width = `${specialPercent}%`;
+            
+            // Ударная волна (показывается только если разблокирована)
+            const waveBar = document.getElementById('waveBar');
+            const waveFill = document.getElementById('waveFill');
+            
+            if (player.waveUnlocked) {
+                waveBar.style.display = 'block';
+                const wavePercent = (player.waveCharge / player.waveMaxCharge) * 100;
+                waveFill.style.width = `${wavePercent}%`;
+            }
+            
+            // Таймер
+            const currentTime = Date.now();
+            const elapsedSeconds = Math.floor((currentTime - gameStartTime) / 1000);
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const seconds = elapsedSeconds % 60;
+            document.getElementById('timer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Предупреждение о боссе
+            if (bossWarningTime > 0) {
+                const warningAlpha = Math.min(1, bossWarningTime / 60);
+                const warningElement = document.getElementById('bossWarning');
+                warningElement.style.opacity = warningAlpha;
+                
+                // Пульсация текста
+                const pulse = 1 + 0.2 * Math.sin(gameTime * 5);
+                warningElement.style.transform = `translate(-50%, -50%) scale(${pulse})`;
+                
+                bossWarningTime--;
+            } else {
+                document.getElementById('bossWarning').style.opacity = 0;
+            }
+            
+            // Сообщение о новой способности
+            if (abilityUnlockedTime > 0) {
+                const abilityAlpha = Math.min(1, abilityUnlockedTime / 60);
+                const abilityElement = document.getElementById('abilityUnlocked');
+                abilityElement.style.opacity = abilityAlpha;
+                
+                // Пульсация текста
+                const pulse = 1 + 0.2 * Math.sin(gameTime * 5);
+                abilityElement.style.transform = `translate(-50%, -50%) scale(${pulse})`;
+                
+                abilityUnlockedTime--;
+            } else {
+                document.getElementById('abilityUnlocked').style.opacity = 0;
+            }
+        }
+        
+        // Создание врага
+        function spawnEnemy() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y, vx, vy;
+            
+            // Целевая точка - около игрока, но иногда прямо на игрока
+            const targetX = player.x + (Math.random() - 0.5) * 100;
+            const targetY = player.y + (Math.random() - 0.5) * 100;
+            
+            // 20% шанс что враг летит прямо на игрока
+            const directHit = Math.random() < 0.2;
+            const finalTargetX = directHit ? player.x : targetX;
+            const finalTargetY = directHit ? player.y : targetY;
+            
+            // Определяем начальную позицию и скорость
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -20;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 20;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 20;
+                    break;
+                case 3: // слева
+                    x = -20;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            
+            // Вычисляем вектор скорости к цели
+            const dx = finalTargetX - x;
+            const dy = finalTargetY - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Увеличиваем скорость врагов со временем, но ограничиваем после первой минуты
+            const timeBasedSpeedIncrease = gameTime < 60 ? gameTime / 60000 : 60 / 60000;
+            const speed = 1.5 + Math.random() * 1.5 + timeBasedSpeedIncrease;
+            
+            vx = (dx / distance) * speed;
+            vy = (dy / distance) * speed;
+            
+            // Выбираем цвет врага
+            const colors = ['#33aaff', '#33ffaa', '#ffaa33', '#aa33ff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            enemies.push({
+                x, y, 
+                vx, vy,
+                radius: 8 + Math.random() * 6,
+                color,
+                directHit: directHit
+            });
+        }
+        
+        // Создание белого крестика для восстановления здоровья
+        function spawnCross() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y, vx, vy;
+            
+            // Крестик летит прямо на игрока
+            const targetX = player.x;
+            const targetY = player.y;
+            
+            // Определяем начальную позицию
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -30;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 30;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 30;
+                    break;
+                case 3: // слева
+                    x = -30;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            
+            // Вычисляем вектор скорости к цели (игроку)
+            const dx = targetX - x;
+            const dy = targetY - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const speed = 2.0 + Math.random() * 1.0;
+            
+            vx = (dx / distance) * speed;
+            vy = (dy / distance) * speed;
+            
+            crosses.push({
+                x, y, 
+                vx, vy,
+                radius: 12,
+                color: '#ffffff',
+                rotation: 0,
+                life: 15,
+                maxLife: 15,
+                collected: false
+            });
+        }
+        
+        // Создание первого мини-босса (большого)
+        function spawnMiniBoss() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            // Определяем начальную позицию за пределами поля
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -50;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 50;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 50;
+                    break;
+                case 3: // слева
+                    x = -50;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            
+            // Начальное направление движения - к центру поля
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const dx = centerX - x;
+            const dy = centerY - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const speed = 1.5;
+            
+            const vx = (dx / distance) * speed;
+            const vy = (dy / distance) * speed;
+            
+            miniBosses.push({
+                x, y, 
+                vx, vy,
+                radius: 45,
+                health: 25,
+                maxHealth: 25,
+                color: '#8a2be2',
+                speed: speed,
+                lastDirectionChange: 0,
+                lastAttackTime: 0,
+                attackCooldown: 2.0,
+                glowIntensity: 0.5
+            });
+        }
+        
+        // Создание второго мини-босса (быстрого, стреляющего сюрикенами)
+        function spawnShooterBoss() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            // Определяем начальную позицию за пределами поля
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -40;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 40;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 40;
+                    break;
+                case 3: // слева
+                    x = -40;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            
+            // Начальное направление движения - к игроку
+            const dx = player.x - x;
+            const dy = player.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const speed = 3.5; // Быстрая скорость
+            
+            const vx = (dx / distance) * speed;
+            const vy = (dy / distance) * speed;
+            
+            shooterBosses.push({
+                x, y, 
+                vx, vy,
+                radius: 30, // Размер 30 пикселей
+                health: 10,
+                maxHealth: 10,
+                color: '#ff9900', // Оранжевый цвет
+                speed: speed,
+                orbitAngle: Math.random() * Math.PI * 2, // Начальный угол для орбитального движения
+                orbitSpeed: 0.05, // Скорость вращения вокруг игрока
+                orbitDistance: 150, // Дистанция от игрока для орбитального движения
+                lastShotTime: 0,
+                shotCooldown: 2.0, // Стрельба каждые 2 секунды
+                glowIntensity: 0.5,
+                rotation: 0
+            });
+        }
+        
+        // Создание третьего мини-босса (с ударной волной)
+        function spawnWaveBoss() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y, vx, vy;
+            
+            // Определяем начальную позицию за пределами поля
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -60;
+                    vx = (Math.random() - 0.5) * 2;
+                    vy = 1;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 60;
+                    y = Math.random() * canvas.height;
+                    vx = -1;
+                    vy = (Math.random() - 0.5) * 2;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 60;
+                    vx = (Math.random() - 0.5) * 2;
+                    vy = -1;
+                    break;
+                case 3: // слева
+                    x = -60;
+                    y = Math.random() * canvas.height;
+                    vx = 1;
+                    vy = (Math.random() - 0.5) * 2;
+                    break;
+            }
+            
+            // Нормализуем вектор скорости для средней скорости
+            const speed = 2.0;
+            const length = Math.sqrt(vx * vx + vy * vy);
+            vx = (vx / length) * speed;
+            vy = (vy / length) * speed;
+            
+            waveBosses.push({
+                x, y, 
+                vx, vy,
+                radius: 50, // Большой размер
+                health: 15,
+                maxHealth: 15,
+                color: '#00cc99', // Бирюзовый цвет
+                speed: speed,
+                lastWaveTime: 0,
+                waveCooldown: 2.0, // Ударная волна каждые 2 секунды
+                glowIntensity: 0.5,
+                rotation: 0
+            });
+        }
+        
+        // Создание четвертого мини-босса (розового)
+        function spawnPinkBoss() {
+            // Определяем сторону появления (0 - верх, 1 - право, 2 - низ, 3 - лево)
+            const side = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            // Определяем начальную позицию за пределами поля
+            switch(side) {
+                case 0: // сверху
+                    x = Math.random() * canvas.width;
+                    y = -50;
+                    break;
+                case 1: // справа
+                    x = canvas.width + 50;
+                    y = Math.random() * canvas.height;
+                    break;
+                case 2: // снизу
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 50;
+                    break;
+                case 3: // слева
+                    x = -50;
+                    y = Math.random() * canvas.height;
+                    break;
+            }
+            
+            // Начальное направление движения - к игроку
+            const dx = player.x - x;
+            const dy = player.y - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const speed = 3.0; // Быстрая скорость
+            
+            const vx = (dx / distance) * speed;
+            const vy = (dy / distance) * speed;
+            
+            pinkBosses.push({
+                x, y, 
+                vx, vy,
+                radius: 35, // Средний размер
+                health: 15, // 15 единиц здоровья
+                maxHealth: 15,
+                color: '#ff66cc', // Розовый цвет
+                speed: speed,
+                lastDirectionChange: 0,
+                lastAttackTime: 0,
+                attackCooldown: 2.0, // Атака каждые 2 секунды
+                state: 'chasing', // Состояние: chasing - преследование, attacking - атака
+                stateTimer: 0, // Таймер состояния
+                glowIntensity: 0.5,
+                rotation: 0
+            });
+        }
+        
+        // Создание полноценного босса
+        function spawnFinalBoss() {
+            if (bossSpawned || finalBoss !== null) return;
+            
+            // Босс появляется в центре поля
+            const x = canvas.width / 2;
+            const y = canvas.height / 2;
+            
+            // Начальная скорость - случайное направление
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 10; // Такая же скорость как у игрока
+            
+            finalBoss = {
+                x, y, 
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                radius: 25, // Размер как у игрока, но чуть больше
+                health: 30,
+                maxHealth: 30,
+                color: '#3366ff', // Синий цвет
+                speed: speed,
+                lastShurikenTime: 0,
+                shurikenCooldown: 3.0, // Сюрикен каждые 3 секунды
+                lastMeleeAttackTime: 0,
+                meleeAttackCooldown: 2.0, // Ближняя атака каждые 2 секунды
+                directionChangeTime: 0,
+                directionChangeCooldown: 2.0, // Смена направления каждые 2 секунды
+                glowIntensity: 0.5,
+                rotation: 0,
+                isActive: true
+            };
+            
+            bossSpawned = true;
+            bossWarningTime = 120; // 2 секунды предупреждения (60 кадров в секунду)
+            
+            // Эффект при появлении босса
+            createParticles(x, y, '#3366ff', 100);
+        }
+        
+        // Создание эффекта частиц
+        function createParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x,
+                    y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    radius: Math.random() * 4 + 1,
+                    color,
+                    life: 1.0,
+                    decay: 0.01 + Math.random() * 0.02
+                });
+            }
+        }
+        
+        // Создание взрывных частиц для мини-босса
+        function createBossExplosion(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 6;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 6 + 2,
+                    color,
+                    life: 1.5,
+                    decay: 0.01 + Math.random() * 0.015
+                });
+            }
+        }
+        
+        // Создание взрывных частиц для финального босса
+        function createFinalBossExplosion(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 8;
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    radius: Math.random() * 8 + 3,
+                    color,
+                    life: 2.0,
+                    decay: 0.008 + Math.random() * 0.012
+                });
+            }
+        }
+        
+        // Обычная атака игрока (полукруг)
+        function performAttack() {
+            if (player.stamina < 1) return;
+            
+            player.stamina -= 1;
+            
+            // Находим ближайшего врага
+            let nearestEnemy = null;
+            let minDistance = Infinity;
+            
+            // Проверяем обычных врагов
+            for (const enemy of enemies) {
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = enemy;
+                }
+            }
+            
+            // Проверяем мини-боссов первого типа
+            for (const boss of miniBosses) {
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = boss;
+                }
+            }
+            
+            // Проверяем мини-боссов второго типа
+            for (const boss of shooterBosses) {
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = boss;
+                }
+            }
+            
+            // Проверяем мини-боссов третьего типа
+            for (const boss of waveBosses) {
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = boss;
+                }
+            }
+            
+            // Проверяем мини-боссов четвертого типа
+            for (const boss of pinkBosses) {
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = boss;
+                }
+            }
+            
+            // Проверяем финального босса
+            if (finalBoss !== null && finalBoss.isActive) {
+                const dx = finalBoss.x - player.x;
+                const dy = finalBoss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = finalBoss;
+                }
+            }
+            
+            // Направление атаки
+            let angle = 0;
+            if (nearestEnemy) {
+                angle = Math.atan2(nearestEnemy.y - player.y, nearestEnemy.x - player.x);
+            }
+            
+            // Создаем атаку с увеличенным радиусом
+            attacks.push({
+                x: player.x,
+                y: player.y,
+                angle: angle,
+                radius: 160,
+                life: 0.2,
+                maxLife: 0.2,
+                damage: 1
+            });
+            
+            // Проверяем попадание по врагам
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания (полукруг в направлении атаки)
+                const enemyAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(enemyAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если враг в радиусе и в секторе атаки
+                if (distance < 160 && angleDiff < Math.PI / 2) {
+                    // Уничтожаем врага
+                    createParticles(enemy.x, enemy.y, enemy.color, 10);
+                    enemies.splice(i, 1);
+                    
+                    // Восстанавливаем стамину за убийство
+                    player.stamina = Math.min(player.maxStamina, player.stamina + 1);
+                    
+                    // Увеличиваем счетчик убийств для ударной волны
+                    if (player.waveUnlocked) {
+                        player.waveKills++;
+                        if (player.waveKills >= 30) {
+                            player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                            player.waveKills = 0;
+                        }
+                    }
+                }
+            }
+            
+            // Проверяем попадание по крестикам
+            for (let i = crosses.length - 1; i >= 0; i--) {
+                const cross = crosses[i];
+                const dx = cross.x - player.x;
+                const dy = cross.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const crossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(crossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если крестик в радиусе и в секторе атаки
+                if (distance < 160 && angleDiff < Math.PI / 2) {
+                    // Уничтожаем крестик без восстановления здоровья
+                    createParticles(cross.x, cross.y, '#aaaaaa', 8);
+                    crosses.splice(i, 1);
+                }
+            }
+            
+            // Проверяем попадание по мини-боссам первого типа
+            for (let i = miniBosses.length - 1; i >= 0; i--) {
+                const boss = miniBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const bossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(bossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если мини-босс в радиусе и в секторе атаки
+                if (distance < 160 + boss.radius && angleDiff < Math.PI / 2) {
+                    // Наносим урон мини-боссу
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 50);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Увеличиваем счетчик убийств для ударной волны
+                        if (player.waveUnlocked) {
+                            player.waveKills++;
+                            if (player.waveKills >= 30) {
+                                player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                player.waveKills = 0;
+                            }
+                        }
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        miniBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Проверяем попадание по мини-боссам второго типа
+            for (let i = shooterBosses.length - 1; i >= 0; i--) {
+                const boss = shooterBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const bossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(bossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если мини-босс в радиусе и в секторе атаки
+                if (distance < 160 + boss.radius && angleDiff < Math.PI / 2) {
+                    // Наносим урон мини-боссу
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 40);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Увеличиваем счетчик убийств для ударной волны
+                        if (player.waveUnlocked) {
+                            player.waveKills++;
+                            if (player.waveKills >= 30) {
+                                player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                player.waveKills = 0;
+                            }
+                        }
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        shooterBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Проверяем попадание по мини-боссам третьего типа
+            for (let i = waveBosses.length - 1; i >= 0; i--) {
+                const boss = waveBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const bossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(bossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если мини-босс в радиусе и в секторе атаки
+                if (distance < 160 + boss.radius && angleDiff < Math.PI / 2) {
+                    // Наносим урон мини-боссу
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 60);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Увеличиваем счетчик убийств для ударной волны
+                        if (player.waveUnlocked) {
+                            player.waveKills++;
+                            if (player.waveKills >= 30) {
+                                player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                player.waveKills = 0;
+                            }
+                        }
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        waveBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Проверяем попадание по мини-боссам четвертого типа
+            for (let i = pinkBosses.length - 1; i >= 0; i--) {
+                const boss = pinkBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const bossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(bossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если мини-босс в радиусе и в секторе атаки
+                if (distance < 160 + boss.radius && angleDiff < Math.PI / 2) {
+                    // Наносим урон мини-боссу
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 50);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Увеличиваем счетчик убийств для ударной волны
+                        if (player.waveUnlocked) {
+                            player.waveKills++;
+                            if (player.waveKills >= 1) {
+                                player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                player.waveKills = 0;
+                            }
+                        }
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        pinkBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Проверяем попадание по финальному боссу
+            if (finalBoss !== null && finalBoss.isActive) {
+                const boss = finalBoss;
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания
+                const bossAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(bossAngle - angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если босс в радиусе и в секторе атаки
+                if (distance < 160 + boss.radius && angleDiff < Math.PI / 2) {
+                    // Наносим урон боссу
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли босс
+                    if (boss.health <= 0) {
+                        // Создаем масштабный взрыв при смерти
+                        createFinalBossExplosion(boss.x, boss.y, boss.color, 100);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 10);
+                        
+                        // Разблокируем новую способность
+                        if (!player.waveUnlocked) {
+                            player.waveUnlocked = true;
+                            abilityUnlockedTime = 120; // 2 секунды показа сообщения
+                        }
+                        
+                        // Деактивируем босса
+                        finalBoss.isActive = false;
+                        finalBoss = null;
+                    }
+                }
+            }
+        }
+        
+        // Супер-атака игрока (8 сюрикенов) - урон уменьшен до 1 единицы
+        function performSpecialAttack() {
+            if (player.specialCharge < player.specialMax) return;
+            
+            player.specialCharge = 0;
+            player.lastSpecialUse = gameTime;
+            
+            // Создаем 8 сюрикенов в разных направлениях (теперь красного цвета)
+            for (let i = 0; i < 8; i++) {
+                const dir = directions[i];
+                specialAttacks.push({
+                    x: player.x,
+                    y: player.y,
+                    vx: dir.x * 12,
+                    vy: dir.y * 12,
+                    radius: 15,
+                    life: 1.5,
+                    maxLife: 1.5,
+                    rotation: 0,
+                    damage: 1, // Уменьшенный урон - теперь 1
+                    color: '#ff3333' // Изменен на красный цвет
+                });
+            }
+            
+            // Эффект при использовании
+            createParticles(player.x, player.y, '#ff3333', 50);
+        }
+        
+        // Ударная волна игрока
+        function performWaveAttack() {
+            if (!player.waveUnlocked || player.waveCharge < player.waveMaxCharge) return;
+            
+            player.waveCharge = 0;
+            
+            // Создаем ударную волну
+            waveAttacks.push({
+                x: player.x,
+                y: player.y,
+                radius: 200, // Начальный радиус
+                maxRadius: 1000, // Максимальный радиус
+                life: 0.6,
+                maxLife: 0.6,
+                damage: 5,
+                color: '#ffffff'
+            });
+            
+            // Эффект при использовании
+            createParticles(player.x, player.y, '#ffffff', 100);
+            
+            // Отталкиваем все объекты и наносим урон
+            
+            // 1. Обычные враги
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем врага
+                    const angle = Math.atan2(dy, dx);
+                    const force = 15;
+                    enemy.vx = Math.cos(angle) * force;
+                    enemy.vy = Math.sin(angle) * force;
+                    
+                    // Наносим урон 1 (убиваем обычных врагов)
+                    createParticles(enemy.x, enemy.y, enemy.color, 10);
+                    enemies.splice(i, 1);
+                    
+                    // Восстанавливаем стамину за убийство
+                    player.stamina = Math.min(player.maxStamina, player.stamina + 1);
+                }
+            }
+            
+            // 2. Атаки врагов (уничтожаем)
+            for (let i = enemyAttacks.length - 1; i >= 0; i--) {
+                const attack = enemyAttacks[i];
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    createParticles(attack.x, attack.y, attack.color, 8);
+                    enemyAttacks.splice(i, 1);
+                }
+            }
+            
+            // 3. Сюрикены врагов (уничтожаем)
+            for (let i = shooterBossAttacks.length - 1; i >= 0; i--) {
+                const attack = shooterBossAttacks[i];
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    createParticles(attack.x, attack.y, attack.color, 8);
+                    shooterBossAttacks.splice(i, 1);
+                }
+            }
+            
+            // 4. Сюрикены розового босса (уничтожаем)
+            for (let i = pinkBossAttacks.length - 1; i >= 0; i--) {
+                const attack = pinkBossAttacks[i];
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    createParticles(attack.x, attack.y, attack.color, 8);
+                    pinkBossAttacks.splice(i, 1);
+                }
+            }
+            
+            // 5. Крестики (отталкиваем, но не уничтожаем)
+            for (let i = crosses.length - 1; i >= 0; i--) {
+                const cross = crosses[i];
+                const dx = cross.x - player.x;
+                const dy = cross.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем крестик
+                    const angle = Math.atan2(dy, dx);
+                    const force = 10;
+                    cross.vx = Math.cos(angle) * force;
+                    cross.vy = Math.sin(angle) * force;
+                }
+            }
+            
+            // 6. Мини-боссы (наносим урон и отталкиваем)
+            // Первый тип
+            for (let i = miniBosses.length - 1; i >= 0; i--) {
+                const boss = miniBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем босса
+                    const angle = Math.atan2(dy, dx);
+                    const force = 8;
+                    boss.vx = Math.cos(angle) * force;
+                    boss.vy = Math.sin(angle) * force;
+                    
+                    // Наносим урон 1
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 50);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        miniBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Второй тип
+            for (let i = shooterBosses.length - 1; i >= 0; i--) {
+                const boss = shooterBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем босса
+                    const angle = Math.atan2(dy, dx);
+                    const force = 8;
+                    boss.vx = Math.cos(angle) * force;
+                    boss.vy = Math.sin(angle) * force;
+                    
+                    // Наносим урон 1
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 40);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        shooterBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Третий тип
+            for (let i = waveBosses.length - 1; i >= 0; i--) {
+                const boss = waveBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем босса
+                    const angle = Math.atan2(dy, dx);
+                    const force = 8;
+                    boss.vx = Math.cos(angle) * force;
+                    boss.vy = Math.sin(angle) * force;
+                    
+                    // Наносим урон 1
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 60);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        waveBosses.splice(i, 1);
+                    }
+                }
+            }
+            
+            // Четвертый тип (розовый)
+            for (let i = pinkBosses.length - 1; i >= 0; i--) {
+                const boss = pinkBosses[i];
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 300) {
+                    // Отталкиваем босса
+                    const angle = Math.atan2(dy, dx);
+                    const force = 8;
+                    boss.vx = Math.cos(angle) * force;
+                    boss.vy = Math.sin(angle) * force;
+                    
+                    // Наносим урон 1
+                    boss.health -= 1;
+                    
+                    // Обновляем интенсивность свечения в зависимости от здоровья
+                    boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                    
+                    // Создаем частицы при получении урона
+                    createParticles(boss.x, boss.y, boss.color, 5);
+                    
+                    // Проверяем, уничтожен ли мини-босс
+                    if (boss.health <= 0) {
+                        // Создаем взрыв при смерти
+                        createBossExplosion(boss.x, boss.y, boss.color, 50);
+                        
+                        // Восстанавливаем стамину за убийство босса
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                        
+                        // Увеличиваем счетчик убитых мини-боссов
+                        miniBossKillCount++;
+                        
+                        // Проверяем, нужно ли спавнить розового босса
+                        if (miniBossKillCount >= 5) {
+                            spawnPinkBoss();
+                            miniBossKillCount = 0;
+                        }
+                        
+                        // Удаляем мини-босса
+                        pinkBosses.splice(i, 1);
+                    }
+                }
+            }
+        }
+        
+        // Атака мини-босса первого типа
+        function performBossAttack(boss) {
+            // Вычисляем направление к игроку
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Создаем атаку мини-босса
+            enemyAttacks.push({
+                x: boss.x,
+                y: boss.y,
+                angle: angle,
+                radius: 120,
+                life: 0.3,
+                maxLife: 0.3,
+                damage: 2,
+                color: '#3366ff'
+            });
+            
+            // Эффект при атаке
+            createParticles(boss.x, boss.y, '#3366ff', 15);
+        }
+        
+        // Атака мини-босса второго типа (стрельба сюрикенами)
+        function performShooterBossAttack(boss) {
+            // Вычисляем направление к игроку
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Создаем сюрикен, летящий в сторону игрока
+            shooterBossAttacks.push({
+                x: boss.x,
+                y: boss.y,
+                vx: Math.cos(angle) * 8,
+                vy: Math.sin(angle) * 8,
+                radius: 10,
+                life: 2.0,
+                maxLife: 2.0,
+                rotation: 0,
+                damage: 1,
+                color: '#ff9900'
+            });
+            
+            // Эффект при выстреле
+            createParticles(boss.x, boss.y, '#ff9900', 10);
+        }
+        
+        // Атака мини-босса третьего типа (ударная волна)
+        function performWaveBossAttack(boss) {
+            // Создаем ударную волну
+            waveBossAttacks.push({
+                x: boss.x,
+                y: boss.y,
+                radius: 80, // Начальный радиус
+                maxRadius: 200, // Максимальный радиус
+                life: 0.6,
+                maxLife: 0.6,
+                damage: 2,
+                color: '#00cc99'
+            });
+            
+            // Эффект при атаке
+            createParticles(boss.x, boss.y, '#00cc99', 20);
+        }
+        
+        // Атака мини-босса четвертого типа (розовый)
+        function performPinkBossAttack(boss) {
+            // Вычисляем направление к игроку
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Создаем 8 сюрикенов во все стороны
+            for (let i = 0; i < 8; i++) {
+                const attackAngle = (Math.PI / 4) * i;
+                pinkBossAttacks.push({
+                    x: boss.x,
+                    y: boss.y,
+                    vx: Math.cos(attackAngle) * 6,
+                    vy: Math.sin(attackAngle) * 6,
+                    radius: 8,
+                    life: 2.0,
+                    maxLife: 2.0,
+                    rotation: 0,
+                    damage: 1, // Урон 1 единица
+                    color: '#ff66cc'
+                });
+            }
+            
+            // Эффект при выстреле
+            createParticles(boss.x, boss.y, '#ff66cc', 15);
+        }
+        
+        // Атака финального босса (сюрикен)
+        function performFinalBossShurikenAttack(boss) {
+            // Вычисляем направление к игроку
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Создаем сюрикен, летящий в сторону игрока
+            finalBossShurikenAttacks.push({
+                x: boss.x,
+                y: boss.y,
+                vx: Math.cos(angle) * 9,
+                vy: Math.sin(angle) * 9,
+                radius: 12,
+                life: 2.5,
+                maxLife: 2.5,
+                rotation: 0,
+                damage: 1,
+                color: '#3366ff'
+            });
+            
+            // Эффект при выстреле
+            createParticles(boss.x, boss.y, '#3366ff', 8);
+        }
+        
+        // Ближняя атака финального босса (полукруг)
+        function performFinalBossMeleeAttack(boss) {
+            // Вычисляем направление к игроку
+            const dx = player.x - boss.x;
+            const dy = player.y - boss.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+            
+            // Создаем ближнюю атаку босса
+            finalBossMeleeAttacks.push({
+                x: boss.x,
+                y: boss.y,
+                angle: angle,
+                radius: 100,
+                life: 0.4,
+                maxLife: 0.4,
+                damage: 2,
+                color: '#6699ff'
+            });
+            
+            // Эффект при атаке
+            createParticles(boss.x, boss.y, '#6699ff', 15);
+        }
+        
+        // Обновление игры
+        function update() {
+            if (gameOver) return;
+            
+            const currentTime = Date.now();
+            gameTime = (currentTime - gameStartTime) / 1000;
+            
+            // Спавн финального босса после (60 секунд) абоба
+            if (gameTime >= 60 && !bossSpawned) {
+                spawnFinalBoss();
+            }
+            
+            // Регенерация здоровья
+            if (currentTime - lastHealthRegen > 5000) {
+                player.health = Math.min(player.maxHealth, player.health + 1);
+                lastHealthRegen = currentTime;
+            }
+            
+            // Регенерация стамины - 3 единицы каждые 5 секунд
+            if (currentTime - lastStaminaRegen > 5000) {
+                player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                lastStaminaRegen = currentTime;
+            }
+            
+            // Зарядка супер-атаки
+            if (player.specialCharge < player.specialMax) {
+                player.specialCharge = Math.min(player.specialMax, player.specialCharge + (1/60) * (player.specialMax / 6));
+            }
+            
+            // Спавн крестика раз в 5 секунд
+            if (currentTime - lastCrossSpawn > 5000) {
+                spawnCross();
+                lastCrossSpawn = currentTime;
+            }
+            
+            // Спавн первого мини-босса раз в 20-30 секунд (теперь спавнится даже после появления босса)
+            if (currentTime - lastMiniBossSpawn > (20000 + Math.random() * 10000)) {
+                spawnMiniBoss();
+                lastMiniBossSpawn = currentTime;
+            }
+            
+            // Спавн второго мини-босса раз в 30-40 секунд (теперь спавнится даже после появления босса)
+            if (currentTime - lastShooterBossSpawn > (30000 + Math.random() * 10000)) {
+                spawnShooterBoss();
+                lastShooterBossSpawn = currentTime;
+            }
+            
+            // Спавн третьего мини-босса раз в 50-70 секунд (теперь спавнится даже после появления босса)
+            if (currentTime - lastWaveBossSpawn > (50000 + Math.random() * 20000)) {
+                spawnWaveBoss();
+                lastWaveBossSpawn = currentTime;
+            }
+            
+            // Увеличение сложности со временем, но останавливаем после первой минуты
+            if (gameTime < 60) {
+                // Увеличиваем частоту появления врагов только в первую минуту
+                enemySpawnRate = Math.max(200, 1000 - gameTime * 10);
+            } else {
+                // После первой минуты фиксируем частоту появления врагов
+                enemySpawnRate = Math.max(200, 1000 - 60 * 10);
+            }
+            
+            // Спавн обычных врагов
+            if (currentTime - lastEnemySpawn > enemySpawnRate) {
+                spawnEnemy();
+                lastEnemySpawn = currentTime;
+                
+                // Иногда спавним несколько врагов сразу, но также ограничиваем после первой минуты
+                const extraSpawnChance = gameTime < 60 ? gameTime / 300 : 60 / 300;
+                if (Math.random() < extraSpawnChance) {
+                    spawnEnemy();
+                }
+            }
+            
+            // Управление игроком (увеличенная скорость)
+            if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
+            if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
+            if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
+            
+            // Ограничение игрока в пределах поля
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+            
+            // Обновление обычных врагов
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                enemy.x += enemy.vx;
+                enemy.y += enemy.vy;
+                
+                // Проверка столкновения с игроком
+                const dx = enemy.x - player.x;
+                const dy = enemy.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + enemy.radius) {
+                    player.health -= 1;
+                    createParticles(enemy.x, enemy.y, enemy.color, 15);
+                    enemies.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                // Удаление врагов, вылетевших за пределы
+                if (enemy.x < -100 || enemy.x > canvas.width + 100 || 
+                    enemy.y < -100 || enemy.y > canvas.height + 100) {
+                    enemies.splice(i, 1);
+                }
+            }
+            
+            // Обновление крестиков
+            for (let i = crosses.length - 1; i >= 0; i--) {
+                const cross = crosses[i];
+                cross.x += cross.vx;
+                cross.y += cross.vy;
+                cross.rotation += 0.05;
+                cross.life -= 1/60;
+                
+                // Проверка столкновения с игроком
+                const dx = cross.x - player.x;
+                const dy = cross.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + cross.radius) {
+                    // Восстанавливаем здоровье игрока
+                    player.health = Math.min(player.maxHealth, player.health + 3);
+                    
+                    // Эффект подбора
+                    createParticles(cross.x, cross.y, '#ffffff', 20);
+                    
+                    // Удаляем крестик
+                    crosses.splice(i, 1);
+                    continue;
+                }
+                
+                // Удаление крестиков, вылетевших за пределы или истекших по времени
+                if (cross.x < -50 || cross.x > canvas.width + 50 || 
+                    cross.y < -50 || cross.y > canvas.height + 50 ||
+                    cross.life <= 0) {
+                    crosses.splice(i, 1);
+                }
+            }
+            
+            // Обновление мини-боссов первого типа
+            for (let i = miniBosses.length - 1; i >= 0; i--) {
+                const boss = miniBosses[i];
+                
+                // Меняем направление движения каждые 3 секунды в сторону игрока
+                if (gameTime - boss.lastDirectionChange > 3) {
+                    const dx = player.x - boss.x;
+                    const dy = player.y - boss.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        boss.vx = (dx / distance) * boss.speed;
+                        boss.vy = (dy / distance) * boss.speed;
+                    }
+                    
+                    boss.lastDirectionChange = gameTime;
+                }
+                
+                // Обновляем позицию
+                boss.x += boss.vx;
+                boss.y += boss.vy;
+                
+                // Ограничиваем движение мини-босса в пределах поля
+                boss.x = Math.max(boss.radius, Math.min(canvas.width - boss.radius, boss.x));
+                boss.y = Math.max(boss.radius, Math.min(canvas.height - boss.radius, boss.y));
+                
+                // Атака мини-босса, если он рядом с игроком
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 200 && gameTime - boss.lastAttackTime > boss.attackCooldown) {
+                    performBossAttack(boss);
+                    boss.lastAttackTime = gameTime;
+                }
+                
+                // Обновляем интенсивность свечения в зависимости от здоровья
+                boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+            }
+            
+            // Обновление мини-боссов второго типа
+            for (let i = shooterBosses.length - 1; i >= 0; i--) {
+                const boss = shooterBosses[i];
+                
+                // Обновляем угол орбиты
+                boss.orbitAngle += boss.orbitSpeed;
+                boss.rotation += 0.1;
+                
+                // Двигаемся по орбите вокруг игрока
+                const targetX = player.x + Math.cos(boss.orbitAngle) * boss.orbitDistance;
+                const targetY = player.y + Math.sin(boss.orbitAngle) * boss.orbitDistance;
+                
+                // Плавное движение к целевой точке на орбите
+                const dx = targetX - boss.x;
+                const dy = targetY - boss.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance > 0) {
+                    boss.vx = (dx / distance) * boss.speed;
+                    boss.vy = (dy / distance) * boss.speed;
+                }
+                
+                // Обновляем позицию
+                boss.x += boss.vx;
+                boss.y += boss.vy;
+                
+                // Ограничиваем движение мини-босса в пределах поля
+                boss.x = Math.max(boss.radius, Math.min(canvas.width - boss.radius, boss.x));
+                boss.y = Math.max(boss.radius, Math.min(canvas.height - boss.radius, boss.y));
+                
+                // Стрельба сюрикенами раз в 2 секунды
+                if (gameTime - boss.lastShotTime > boss.shotCooldown) {
+                    performShooterBossAttack(boss);
+                    boss.lastShotTime = gameTime;
+                }
+                
+                // Обновляем интенсивность свечения в зависимости от здоровья
+                boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+            }
+            
+            // Обновление мини-боссов третьего типа
+            for (let i = waveBosses.length - 1; i >= 0; i--) {
+                const boss = waveBosses[i];
+                
+                // Обновляем позицию
+                boss.x += boss.vx;
+                boss.y += boss.vy;
+                boss.rotation += 0.02;
+                
+                // Отталкивание от краев поля
+                const margin = 10; // Отступ от края
+                
+                // Если достигли левой или правой границы
+                if (boss.x < boss.radius + margin) {
+                    boss.vx = Math.abs(boss.vx); // Меняем направление по X на положительное
+                    // Добавляем случайность
+                    boss.vy = (Math.random() - 0.5) * boss.speed * 2;
+                } else if (boss.x > canvas.width - boss.radius - margin) {
+                    boss.vx = -Math.abs(boss.vx); // Меняем направление по X на отрицательное
+                    boss.vy = (Math.random() - 0.5) * boss.speed * 2;
+                }
+                
+                // Если достигли верхней или нижней границы
+                if (boss.y < boss.radius + margin) {
+                    boss.vy = Math.abs(boss.vy); // Меняем направление по Y на положительное
+                    boss.vx = (Math.random() - 0.5) * boss.speed * 2;
+                } else if (boss.y > canvas.height - boss.radius - margin) {
+                    boss.vy = -Math.abs(boss.vy); // Меняем направление по Y на отрицательное
+                    boss.vx = (Math.random() - 0.5) * boss.speed * 2;
+                }
+                
+                // Нормализуем скорость
+                const currentSpeed = Math.sqrt(boss.vx * boss.vx + boss.vy * boss.vy);
+                boss.vx = (boss.vx / currentSpeed) * boss.speed;
+                boss.vy = (boss.vy / currentSpeed) * boss.speed;
+                
+                // Атака ударной волной раз в 2 секунды
+                if (gameTime - boss.lastWaveTime > boss.waveCooldown) {
+                    performWaveBossAttack(boss);
+                    boss.lastWaveTime = gameTime;
+                }
+                
+                // Обновляем интенсивность свечения в зависимости от здоровья
+                boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+            }
+            
+            // Обновление мини-боссов четвертого типа (розовых)
+            for (let i = pinkBosses.length - 1; i >= 0; i--) {
+                const boss = pinkBosses[i];
+                
+                // Обновляем таймер состояния
+                boss.stateTimer += 1/60;
+                
+                if (boss.state === 'chasing') {
+                    // Преследование игрока в течение 2 секунд
+                    if (boss.stateTimer <= 2) {
+                        // Двигаемся в сторону игрока
+                        const dx = player.x - boss.x;
+                        const dy = player.y - boss.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance > 0) {
+                            boss.vx = (dx / distance) * boss.speed;
+                            boss.vy = (dy / distance) * boss.speed;
+                        }
+                        
+                        boss.x += boss.vx;
+                        boss.y += boss.vy;
+                    } else {
+                        // Переключаемся в режим атаки
+                        boss.state = 'attacking';
+                        boss.stateTimer = 0;
+                        // Останавливаем босса
+                        boss.vx = 0;
+                        boss.vy = 0;
+                        // Атакуем
+                        performPinkBossAttack(boss);
+                    }
+                } else if (boss.state === 'attacking') {
+                    // Атака в течение 2 секунд (стоим на месте)
+                    if (boss.stateTimer > 2) {
+                        // Переключаемся обратно в режим преследования
+                        boss.state = 'chasing';
+                        boss.stateTimer = 0;
+                    }
+                }
+                
+                // Ограничиваем движение мини-босса в пределах поля
+                boss.x = Math.max(boss.radius, Math.min(canvas.width - boss.radius, boss.x));
+                boss.y = Math.max(boss.radius, Math.min(canvas.height - boss.radius, boss.y));
+                
+                // Обновляем вращение
+                boss.rotation += 0.05;
+                
+                // Обновляем интенсивность свечения в зависимости от здоровья
+                boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+            }
+            
+            // Обновление финального босса
+            if (finalBoss !== null && finalBoss.isActive) {
+                const boss = finalBoss;
+                
+                // Обновляем позицию
+                boss.x += boss.vx;
+                boss.y += boss.vy;
+                boss.rotation += 0.05;
+                
+                // Хаотичное движение: меняем направление каждые 2 секунды
+                if (gameTime - boss.directionChangeTime > boss.directionChangeCooldown) {
+                    const angle = Math.random() * Math.PI * 2;
+                    boss.vx = Math.cos(angle) * boss.speed;
+                    boss.vy = Math.sin(angle) * boss.speed;
+                    boss.directionChangeTime = gameTime;
+                }
+                
+                // Ограничиваем движение босса в пределах поля
+                const margin = 20; // Отступ от края
+                if (boss.x < boss.radius + margin) {
+                    boss.x = boss.radius + margin;
+                    boss.vx = Math.abs(boss.vx);
+                } else if (boss.x > canvas.width - boss.radius - margin) {
+                    boss.x = canvas.width - boss.radius - margin;
+                    boss.vx = -Math.abs(boss.vx);
+                }
+                
+                if (boss.y < boss.radius + margin) {
+                    boss.y = boss.radius + margin;
+                    boss.vy = Math.abs(boss.vy);
+                } else if (boss.y > canvas.height - boss.radius - margin) {
+                    boss.y = canvas.height - boss.radius - margin;
+                    boss.vy = -Math.abs(boss.vy);
+                }
+                
+                // Стрельба сюрикенами каждую секунду
+                if (gameTime - boss.lastShurikenTime > boss.shurikenCooldown) {
+                    performFinalBossShurikenAttack(boss);
+                    boss.lastShurikenTime = gameTime;
+                }
+                
+                // Проверяем расстояние до игрока для ближней атаки
+                const dx = boss.x - player.x;
+                const dy = boss.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Ближняя атака, если игрок рядом (менее 150 пикселей)
+                if (distance < 150 && gameTime - boss.lastMeleeAttackTime > boss.meleeAttackCooldown) {
+                    performFinalBossMeleeAttack(boss);
+                    boss.lastMeleeAttackTime = gameTime;
+                }
+                
+                // Обновляем интенсивность свечения в зависимости от здоровья
+                boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+            }
+            
+            // Обновление атак игрока
+            for (let i = attacks.length - 1; i >= 0; i--) {
+                const attack = attacks[i];
+                attack.life -= 1/60;
+                
+                if (attack.life <= 0) {
+                    attacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление атак врагов первого типа
+            for (let i = enemyAttacks.length - 1; i >= 0; i--) {
+                const attack = enemyAttacks[i];
+                attack.life -= 1/60;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания (полукруг в направлении атаки)
+                const playerAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(playerAngle - attack.angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если игрок в радиусе и в секторе атаки
+                if (distance < attack.radius && angleDiff < Math.PI / 2) {
+                    player.health -= attack.damage;
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    enemyAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                if (attack.life <= 0) {
+                    enemyAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление атак врагов второго типа (сюрикены)
+            for (let i = shooterBossAttacks.length - 1; i >= 0; i--) {
+                const attack = shooterBossAttacks[i];
+                attack.x += attack.vx;
+                attack.y += attack.vy;
+                attack.life -= 1/60;
+                attack.rotation += 0.3;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + attack.radius) {
+                    player.health -= attack.damage;
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    shooterBossAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                // Удаление атак, вылетевших за пределы
+                if (attack.x < -50 || attack.x > canvas.width + 50 || 
+                    attack.y < -50 || attack.y > canvas.height + 50 ||
+                    attack.life <= 0) {
+                    shooterBossAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление атак врагов третьего типа (ударные волны)
+            for (let i = waveBossAttacks.length - 1; i >= 0; i--) {
+                const attack = waveBossAttacks[i];
+                attack.life -= 1/60;
+                
+                // Ударная волна расширяется со временем
+                const progress = 1 - (attack.life / attack.maxLife);
+                attack.radius = attack.maxRadius * progress;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Если игрок в радиусе ударной волны
+                if (distance < attack.radius) {
+                    player.health -= attack.damage;
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    waveBossAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                if (attack.life <= 0) {
+                    waveBossAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление атак врагов четвертого типа (розовые сюрикены)
+            for (let i = pinkBossAttacks.length - 1; i >= 0; i--) {
+                const attack = pinkBossAttacks[i];
+                attack.x += attack.vx;
+                attack.y += attack.vy;
+                attack.life -= 1/60;
+                attack.rotation += 0.3;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + attack.radius) {
+                    player.health -= attack.damage; // Урон 1 единица
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    pinkBossAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                // Удаление атак, вылетевших за пределы
+                if (attack.x < -50 || attack.x > canvas.width + 50 || 
+                    attack.y < -50 || attack.y > canvas.height + 50 ||
+                    attack.life <= 0) {
+                    pinkBossAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление сюрикенов финального босса
+            for (let i = finalBossShurikenAttacks.length - 1; i >= 0; i--) {
+                const attack = finalBossShurikenAttacks[i];
+                attack.x += attack.vx;
+                attack.y += attack.vy;
+                attack.life -= 1/60;
+                attack.rotation += 0.3;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < player.radius + attack.radius) {
+                    player.health -= attack.damage;
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    finalBossShurikenAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                // Удаление атак, вылетевших за пределы
+                if (attack.x < -50 || attack.x > canvas.width + 50 || 
+                    attack.y < -50 || attack.y > canvas.height + 50 ||
+                    attack.life <= 0) {
+                    finalBossShurikenAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление ближних атак финального босса
+            for (let i = finalBossMeleeAttacks.length - 1; i >= 0; i--) {
+                const attack = finalBossMeleeAttacks[i];
+                attack.life -= 1/60;
+                
+                // Проверка столкновения с игроком
+                const dx = attack.x - player.x;
+                const dy = attack.y - player.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // Проверяем угол попадания (полукруг в направлении атаки)
+                const playerAngle = Math.atan2(dy, dx);
+                let angleDiff = Math.abs(playerAngle - attack.angle);
+                if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+                
+                // Если игрок в радиусе и в секторе атаки
+                if (distance < attack.radius && angleDiff < Math.PI / 2) {
+                    player.health -= attack.damage;
+                    createParticles(player.x, player.y, '#ff3333', 10);
+                    finalBossMeleeAttacks.splice(i, 1);
+                    
+                    if (player.health <= 0) {
+                        gameOver = true;
+                        document.getElementById('gameOver').style.display = 'flex';
+                        createParticles(player.x, player.y, player.color, 100);
+                    }
+                    continue;
+                }
+                
+                if (attack.life <= 0) {
+                    finalBossMeleeAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление ударных волн игрока
+            for (let i = waveAttacks.length - 1; i >= 0; i--) {
+                const attack = waveAttacks[i];
+                attack.life -= 1/60;
+                
+                // Ударная волна расширяется со временем
+                const progress = 1 - (attack.life / attack.maxLife);
+                attack.radius = attack.maxRadius * progress;
+                
+                if (attack.life <= 0) {
+                    waveAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление супер-атак игрока (с уменьшенным уроном до 1 единицы)
+            for (let i = specialAttacks.length - 1; i >= 0; i--) {
+                const special = specialAttacks[i];
+                special.x += special.vx;
+                special.y += special.vy;
+                special.life -= 1/60;
+                special.rotation += 0.3;
+                
+                // Проверка столкновения с обычными врагами
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    const dx = enemy.x - special.x;
+                    const dy = enemy.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + enemy.radius) {
+                        createParticles(enemy.x, enemy.y, enemy.color, 10);
+                        enemies.splice(j, 1);
+                        
+                        // Восстанавливаем стамину за убийство
+                        player.stamina = Math.min(player.maxStamina, player.stamina + 1);
+                        
+                        // Увеличиваем счетчик убийств для ударной волны
+                        if (player.waveUnlocked) {
+                            player.waveKills++;
+                            if (player.waveKills >= 1) {
+                                player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 10);
+                                player.waveKills = 0;
+                            }
+                        }
+                    }
+                }
+                
+                // Проверка столкновения с крестиками
+                for (let j = crosses.length - 1; j >= 0; j--) {
+                    const cross = crosses[j];
+                    const dx = cross.x - special.x;
+                    const dy = cross.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + cross.radius) {
+                        // Уничтожаем крестик без восстановления здоровья
+                        createParticles(cross.x, cross.y, '#aaaaaa', 8);
+                        crosses.splice(j, 1);
+                    }
+                }
+                
+                // Проверка столкновения с мини-боссами первого типа
+                for (let j = miniBosses.length - 1; j >= 0; j--) {
+                    const boss = miniBosses[j];
+                    const dx = boss.x - special.x;
+                    const dy = boss.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + boss.radius) {
+                        // Наносим урон мини-боссу (1 единица)
+                        boss.health -= special.damage;
+                        
+                        // Обновляем интенсивность свечения в зависимости от здоровья
+                        boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                        
+                        // Создаем частицы при получении урона
+                        createParticles(boss.x, boss.y, boss.color, 5);
+                        
+                        // Проверяем, уничтожен ли мини-босс
+                        if (boss.health <= 0) {
+                            // Создаем взрыв при смерти
+                            createBossExplosion(boss.x, boss.y, boss.color, 50);
+                            
+                            // Восстанавливаем стамину за убийство босса
+                            player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                            
+                            // Увеличиваем счетчик убитых мини-боссов
+                            miniBossKillCount++;
+                            
+                            // Увеличиваем счетчик убийств для ударной волны
+                            if (player.waveUnlocked) {
+                                player.waveKills++;
+                                if (player.waveKills >= 30) {
+                                    player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                    player.waveKills = 0;
+                                }
+                            }
+                            
+                            // Проверяем, нужно ли спавнить розового босса
+                            if (miniBossKillCount >= 5) {
+                                spawnPinkBoss();
+                                miniBossKillCount = 0;
+                            }
+                            
+                            // Удаляем мини-босса
+                            miniBosses.splice(j, 1);
+                        }
+                    }
+                }
+                
+                // Проверка столкновения с мини-боссами второго типа
+                for (let j = shooterBosses.length - 1; j >= 0; j--) {
+                    const boss = shooterBosses[j];
+                    const dx = boss.x - special.x;
+                    const dy = boss.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + boss.radius) {
+                        // Наносим урон мини-боссу (1 единица)
+                        boss.health -= special.damage;
+                        
+                        // Обновляем интенсивность свечения в зависимости от здоровья
+                        boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                        
+                        // Создаем частицы при получении урона
+                        createParticles(boss.x, boss.y, boss.color, 5);
+                        
+                        // Проверяем, уничтожен ли мини-босс
+                        if (boss.health <= 0) {
+                            // Создаем взрыв при смерти
+                            createBossExplosion(boss.x, boss.y, boss.color, 40);
+                            
+                            // Восстанавливаем стамину за убийство босса
+                            player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                            
+                            // Увеличиваем счетчик убитых мини-боссов
+                            miniBossKillCount++;
+                            
+                            // Увеличиваем счетчик убийств для ударной волны
+                            if (player.waveUnlocked) {
+                                player.waveKills++;
+                                if (player.waveKills >= 30) {
+                                    player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                    player.waveKills = 0;
+                                }
+                            }
+                            
+                            // Проверяем, нужно ли спавнить розового босса
+                            if (miniBossKillCount >= 5) {
+                                spawnPinkBoss();
+                                miniBossKillCount = 0;
+                            }
+                            
+                            // Удаляем мини-босса
+                            shooterBosses.splice(j, 1);
+                        }
+                    }
+                }
+                
+                // Проверка столкновения с мини-боссами третьего типа
+                for (let j = waveBosses.length - 1; j >= 0; j--) {
+                    const boss = waveBosses[j];
+                    const dx = boss.x - special.x;
+                    const dy = boss.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + boss.radius) {
+                        // Наносим урон мини-боссу (1 единица)
+                        boss.health -= special.damage;
+                        
+                        // Обновляем интенсивность свечения в зависимости от здоровья
+                        boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                        
+                        // Создаем частицы при получении урона
+                        createParticles(boss.x, boss.y, boss.color, 5);
+                        
+                        // Проверяем, уничтожен ли мини-босс
+                        if (boss.health <= 0) {
+                            // Создаем взрыв при смерти
+                            createBossExplosion(boss.x, boss.y, boss.color, 60);
+                            
+                            // Восстанавливаем стамину за убийство босса
+                            player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                            
+                            // Увеличиваем счетчик убитых мини-боссов
+                            miniBossKillCount++;
+                            
+                            // Увеличиваем счетчик убийств для ударной волны
+                            if (player.waveUnlocked) {
+                                player.waveKills++;
+                                if (player.waveKills >= 30) {
+                                    player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                    player.waveKills = 0;
+                                }
+                            }
+                            
+                            // Проверяем, нужно ли спавнить розового босса
+                            if (miniBossKillCount >= 5) {
+                                spawnPinkBoss();
+                                miniBossKillCount = 0;
+                            }
+                            
+                            // Удаляем мини-босса
+                            waveBosses.splice(j, 1);
+                        }
+                    }
+                }
+                
+                // Проверка столкновения с мини-боссами четвертого типа
+                for (let j = pinkBosses.length - 1; j >= 0; j--) {
+                    const boss = pinkBosses[j];
+                    const dx = boss.x - special.x;
+                    const dy = boss.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + boss.radius) {
+                        // Наносим урон мини-боссу (1 единица)
+                        boss.health -= special.damage;
+                        
+                        // Обновляем интенсивность свечения в зависимости от здоровья
+                        boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                        
+                        // Создаем частицы при получении урона
+                        createParticles(boss.x, boss.y, boss.color, 5);
+                        
+                        // Проверяем, уничтожен ли мини-босс
+                        if (boss.health <= 0) {
+                            // Создаем взрыв при смерти
+                            createBossExplosion(boss.x, boss.y, boss.color, 50);
+                            
+                            // Восстанавливаем стамину за убийство босса
+                            player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+                            
+                            // Увеличиваем счетчик убитых мини-боссов
+                            miniBossKillCount++;
+                            
+                            // Увеличиваем счетчик убийств для ударной волны
+                            if (player.waveUnlocked) {
+                                player.waveKills++;
+                                if (player.waveKills >= 30) {
+                                    player.waveCharge = Math.min(player.waveMaxCharge, player.waveCharge + 1);
+                                    player.waveKills = 0;
+                                }
+                            }
+                            
+                            // Проверяем, нужно ли спавнить розового босса
+                            if (miniBossKillCount >= 5) {
+                                spawnPinkBoss();
+                                miniBossKillCount = 0;
+                            }
+                            
+                            // Удаляем мини-босса
+                            pinkBosses.splice(j, 1);
+                        }
+                    }
+                }
+                
+                // Проверка столкновения с финальным боссом
+                if (finalBoss !== null && finalBoss.isActive) {
+                    const boss = finalBoss;
+                    const dx = boss.x - special.x;
+                    const dy = boss.y - special.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < special.radius + boss.radius) {
+                        // Наносим урон боссу (1 единица)
+                        boss.health -= special.damage;
+                        
+                        // Обновляем интенсивность свечения в зависимости от здоровья
+                        boss.glowIntensity = 0.5 + (1 - boss.health / boss.maxHealth) * 0.5;
+                        
+                        // Создаем частицы при получении урона
+                        createParticles(boss.x, boss.y, boss.color, 5);
+                        
+                        // Проверяем, уничтожен ли босс
+                        if (boss.health <= 0) {
+                            // Создаем масштабный взрыв при смерти
+                            createFinalBossExplosion(boss.x, boss.y, boss.color, 100);
+                            
+                            // Восстанавливаем стамину за убийство босса
+                            player.stamina = Math.min(player.maxStamina, player.stamina + 10);
+                            
+                            // Разблокируем новую способность
+                            if (!player.waveUnlocked) {
+                                player.waveUnlocked = true;
+                                abilityUnlockedTime = 120; // 2 секунды показа сообщения
+                            }
+                            
+                            // Деактивируем босса
+                            finalBoss.isActive = false;
+                            finalBoss = null;
+                        }
+                    }
+                }
+                
+                // Удаление вылетевших за пределы
+                if (special.x < -50 || special.x > canvas.width + 50 || 
+                    special.y < -50 || special.y > canvas.height + 50 ||
+                    special.life <= 0) {
+                    specialAttacks.splice(i, 1);
+                }
+            }
+            
+            // Обновление частиц
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= particle.decay;
+                
+                if (particle.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            updateUI();
+        }
+        
+        // Отрисовка игры
+        function draw() {
+            // Очистка canvas с эффектом затухания
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Отрисовка частиц
+            for (const particle of particles) {
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.globalAlpha = 1;
+            
+            // Отрисовка обычных врагов
+            for (const enemy of enemies) {
+                // Свечение врагов
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = enemy.color;
+                
+                // Основной круг
+                ctx.fillStyle = enemy.color;
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Яркое ядро для прямых атак
+                if (enemy.directHit) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x, enemy.y, enemy.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Пульсация для прямых атак
+                    const pulseSize = enemy.radius * (1 + 0.3 * Math.sin(gameTime * 5));
+                    ctx.strokeStyle = '#ff3333';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x, enemy.y, pulseSize, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка крестиков
+            for (const cross of crosses) {
+                const alpha = cross.life / cross.maxLife;
+                
+                // Свечение крестика
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ffffff';
+                ctx.globalAlpha = alpha;
+                
+                // Внешний круг
+                ctx.fillStyle = cross.color;
+                ctx.beginPath();
+                ctx.arc(cross.x, cross.y, cross.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внутренний круг
+                ctx.fillStyle = '#cccccc';
+                ctx.beginPath();
+                ctx.arc(cross.x, cross.y, cross.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Крест
+                ctx.save();
+                ctx.translate(cross.x, cross.y);
+                ctx.rotate(cross.rotation);
+                
+                ctx.fillStyle = '#ffffff';
+                
+                // Вертикальная линия креста
+                ctx.fillRect(-cross.radius * 0.15, -cross.radius * 0.7, 
+                            cross.radius * 0.3, cross.radius * 1.4);
+                
+                // Горизонтальная линия креста
+                ctx.fillRect(-cross.radius * 0.7, -cross.radius * 0.15, 
+                            cross.radius * 1.4, cross.radius * 0.3);
+                
+                ctx.restore();
+                
+                // Эффект пульсации
+                const pulse = 0.9 + 0.1 * Math.sin(gameTime * 3);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(cross.x, cross.y, cross.radius * pulse, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка мини-боссов первого типа
+            for (const boss of miniBosses) {
+                // Интенсивность свечения зависит от здоровья
+                const glowIntensity = boss.glowIntensity;
+                
+                // Свечение мини-босса
+                ctx.shadowBlur = 15 + 25 * (1 - boss.health / boss.maxHealth);
+                ctx.shadowColor = boss.color;
+                
+                // Основной круг мини-босса
+                ctx.fillStyle = boss.color;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внутренний круг
+                const innerColor = `rgba(255, 255, 255, ${0.3 + 0.4 * (1 - boss.health / boss.maxHealth)})`;
+                ctx.fillStyle = innerColor;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ядро мини-босса с пульсацией
+                const pulse = 0.8 + 0.2 * Math.sin(gameTime * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 0.4 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Узор на мини-боссе
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 0.9, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Внутренние линии
+                ctx.beginPath();
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI / 4) * i + gameTime * 0.5;
+                    const x1 = boss.x + Math.cos(angle) * boss.radius * 0.3;
+                    const y1 = boss.y + Math.sin(angle) * boss.radius * 0.3;
+                    const x2 = boss.x + Math.cos(angle) * boss.radius * 0.7;
+                    const y2 = boss.y + Math.sin(angle) * boss.radius * 0.7;
+                    
+                    if (i === 0) ctx.moveTo(x1, y1);
+                    else ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                }
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка мини-боссов второго типа
+            for (const boss of shooterBosses) {
+                // Интенсивность свечения зависит от здоровья
+                const glowIntensity = boss.glowIntensity;
+                
+                // Свечение мини-босса
+                ctx.shadowBlur = 10 + 20 * (1 - boss.health / boss.maxHealth);
+                ctx.shadowColor = boss.color;
+                
+                ctx.save();
+                ctx.translate(boss.x, boss.y);
+                ctx.rotate(boss.rotation);
+                
+                // Основной круг мини-босса (шестиугольная форма для отличия)
+                ctx.fillStyle = boss.color;
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i;
+                    const x = Math.cos(angle) * boss.radius;
+                    const y = Math.sin(angle) * boss.radius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Внутренний круг
+                const innerColor = `rgba(255, 255, 255, ${0.3 + 0.4 * (1 - boss.health / boss.maxHealth)})`;
+                ctx.fillStyle = innerColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ядро мини-босса
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Линии от центра к углам
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(
+                        Math.cos(angle) * boss.radius * 0.9,
+                        Math.sin(angle) * boss.radius * 0.9
+                    );
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка мини-боссов третьего типа
+            for (const boss of waveBosses) {
+                // Интенсивность свечения зависит от здоровья
+                const glowIntensity = boss.glowIntensity;
+                
+                // Свечение мини-босса
+                ctx.shadowBlur = 15 + 30 * (1 - boss.health / boss.maxHealth);
+                ctx.shadowColor = boss.color;
+                
+                ctx.save();
+                ctx.translate(boss.x, boss.y);
+                ctx.rotate(boss.rotation);
+                
+                // Основной круг мини-босса (квадратная форма для отличия)
+                ctx.fillStyle = boss.color;
+                ctx.beginPath();
+                // Рисуем квадрат
+                const squareSize = boss.radius;
+                ctx.rect(-squareSize, -squareSize, squareSize * 2, squareSize * 2);
+                ctx.fill();
+                
+                // Внутренний круг
+                const innerColor = `rgba(255, 255, 255, ${0.3 + 0.4 * (1 - boss.health / boss.maxHealth)})`;
+                ctx.fillStyle = innerColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ядро мини-босса
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Диагональные линии
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-boss.radius * 0.6, -boss.radius * 0.6);
+                ctx.lineTo(boss.radius * 0.6, boss.radius * 0.6);
+                ctx.moveTo(boss.radius * 0.6, -boss.radius * 0.6);
+                ctx.lineTo(-boss.radius * 0.6, boss.radius * 0.6);
+                ctx.stroke();
+                
+                ctx.restore();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка мини-боссов четвертого типа (розовых)
+            for (const boss of pinkBosses) {
+                // Интенсивность свечения зависит от здоровья
+                const glowIntensity = boss.glowIntensity;
+                
+                // Свечение мини-босса
+                ctx.shadowBlur = 15 + 25 * (1 - boss.health / boss.maxHealth);
+                ctx.shadowColor = boss.color;
+                
+                ctx.save();
+                ctx.translate(boss.x, boss.y);
+                ctx.rotate(boss.rotation);
+                
+                // Основной круг мини-босса
+                ctx.fillStyle = boss.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внутренний круг
+                const innerColor = `rgba(255, 255, 255, ${0.3 + 0.4 * (1 - boss.health / boss.maxHealth)})`;
+                ctx.fillStyle = innerColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ядро мини-босса
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внешнее кольцо
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, boss.radius * 1.1, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Внутренние линии (8 направлений)
+                for (let i = 0; i < 8; i++) {
+                    const angle = (Math.PI / 4) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(
+                        Math.cos(angle) * boss.radius * 0.9,
+                        Math.sin(angle) * boss.radius * 0.9
+                    );
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+                
+                // Индикатор состояния (цветная обводка)
+                if (boss.state === 'chasing') {
+                    ctx.strokeStyle = '#ff66cc';
+                } else {
+                    ctx.strokeStyle = '#ff0066'; // Более яркий цвет при атаке
+                }
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 1.2, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка финального босса
+            if (finalBoss !== null && finalBoss.isActive) {
+                const boss = finalBoss;
+                
+                // Интенсивность свечения зависит от здоровья
+                const glowIntensity = boss.glowIntensity;
+                
+                // Свечение босса
+                ctx.shadowBlur = 20 + 40 * (1 - boss.health / boss.maxHealth);
+                ctx.shadowColor = boss.color;
+                
+                // Основной круг босса (похож на игрока, но синий)
+                ctx.fillStyle = boss.color;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внутренний круг
+                const innerColor = `rgba(255, 255, 255, ${0.3 + 0.4 * (1 - boss.health / boss.maxHealth)})`;
+                ctx.fillStyle = innerColor;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 0.6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ядро босса с пульсацией
+                const pulse = 0.8 + 0.2 * Math.sin(gameTime * 3);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 0.3 * pulse, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Внешнее кольцо
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(boss.x, boss.y, boss.radius * 1.1, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка атак игрока
+            for (const attack of attacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.7 * (1 - progress);
+                const radius = attack.radius * (0.8 + 0.2 * Math.sin(progress * Math.PI));
+                
+                // Свечение атаки
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = '#ff3333';
+                
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = '#ff3333';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Внутренний слой
+                ctx.fillStyle = '#ff6666';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.7, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Самый внутренний слой
+                ctx.fillStyle = '#ff9999';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.4, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка атак врагов первого типа
+            for (const attack of enemyAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.7 * (1 - progress);
+                const radius = attack.radius * (0.8 + 0.2 * Math.sin(progress * Math.PI));
+                
+                // Свечение атаки врага
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = attack.color;
+                
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = attack.color;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Внутренний слой
+                ctx.fillStyle = '#6699ff';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.7, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка атак врагов второго типа (сюрикены)
+            for (const attack of shooterBossAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.9 * (1 - progress * 0.5);
+                
+                // Свечение сюрикенов
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = attack.color;
+                ctx.globalAlpha = alpha;
+                
+                ctx.save();
+                ctx.translate(attack.x, attack.y);
+                ctx.rotate(attack.rotation);
+                
+                // Отрисовка сюрикена (звезда с 4 лучами, но меньшего размера)
+                ctx.fillStyle = attack.color;
+                ctx.beginPath();
+                for (let i = 0; i < 4; i++) {
+                    const angle = (Math.PI / 2) * i;
+                    ctx.lineTo(
+                        Math.cos(angle) * attack.radius,
+                        Math.sin(angle) * attack.radius
+                    );
+                    ctx.lineTo(
+                        Math.cos(angle + Math.PI/4) * attack.radius * 0.5,
+                        Math.sin(angle + Math.PI/4) * attack.radius * 0.5
+                    );
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ядро сюрикена
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, attack.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка атак врагов третьего типа (ударные волны)
+            for (const attack of waveBossAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.6 * (1 - progress);
+                const radius = attack.radius;
+                
+                // Свечение ударной волны
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = attack.color;
+                
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = attack.color;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Внутренний слой
+                ctx.strokeStyle = '#66ffcc';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Центр волны
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка атак врагов четвертого типа (розовые сюрикены)
+            for (const attack of pinkBossAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.9 * (1 - progress * 0.5);
+                
+                // Свечение сюрикенов
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = attack.color;
+                ctx.globalAlpha = alpha;
+                
+                ctx.save();
+                ctx.translate(attack.x, attack.y);
+                ctx.rotate(attack.rotation);
+                
+                // Отрисовка сюрикена (звезда с 4 лучами)
+                ctx.fillStyle = attack.color;
+                ctx.beginPath();
+                for (let i = 0; i < 4; i++) {
+                    const angle = (Math.PI / 2) * i;
+                    ctx.lineTo(
+                        Math.cos(angle) * attack.radius,
+                        Math.sin(angle) * attack.radius
+                    );
+                    ctx.lineTo(
+                        Math.cos(angle + Math.PI/4) * attack.radius * 0.5,
+                        Math.sin(angle + Math.PI/4) * attack.radius * 0.5
+                    );
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ядро сюрикена
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, attack.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка сюрикенов финального босса
+            for (const attack of finalBossShurikenAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.9 * (1 - progress * 0.5);
+                
+                // Свечение сюрикенов
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = attack.color;
+                ctx.globalAlpha = alpha;
+                
+                ctx.save();
+                ctx.translate(attack.x, attack.y);
+                ctx.rotate(attack.rotation);
+                
+                // Отрисовка сюрикена (звезда с 4 лучами)
+                ctx.fillStyle = attack.color;
+                ctx.beginPath();
+                for (let i = 0; i < 4; i++) {
+                    const angle = (Math.PI / 2) * i;
+                    ctx.lineTo(
+                        Math.cos(angle) * attack.radius,
+                        Math.sin(angle) * attack.radius
+                    );
+                    ctx.lineTo(
+                        Math.cos(angle + Math.PI/4) * attack.radius * 0.5,
+                        Math.sin(angle + Math.PI/4) * attack.radius * 0.5
+                    );
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ядро сюрикена
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, attack.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка ближних атак финального босса
+            for (const attack of finalBossMeleeAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.7 * (1 - progress);
+                const radius = attack.radius * (0.8 + 0.2 * Math.sin(progress * Math.PI));
+                
+                // Свечение атаки врага
+                ctx.shadowBlur = 30;
+                ctx.shadowColor = attack.color;
+                
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = attack.color;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Внутренний слой
+                ctx.fillStyle = '#6699ff';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.7, attack.angle - Math.PI/2, attack.angle + Math.PI/2);
+                ctx.lineTo(attack.x, attack.y);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка ударных волн игрока
+            for (const attack of waveAttacks) {
+                const progress = 1 - (attack.life / attack.maxLife);
+                const alpha = 0.6 * (1 - progress);
+                const radius = attack.radius;
+                
+                // Свечение ударной волны (белое)
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = '#ffffff';
+                
+                ctx.globalAlpha = alpha;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Внутренний слой
+                ctx.strokeStyle = '#cccccc';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, radius * 0.9, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Центр волны
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(attack.x, attack.y, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка супер-атак игрока (красные сюрикены с уроном 1)
+            for (const special of specialAttacks) {
+                const progress = 1 - (special.life / special.maxLife);
+                const alpha = 0.9 * (1 - progress * 0.5);
+                
+                // Свечение сюрикенов
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = special.color;
+                ctx.globalAlpha = alpha;
+                
+                ctx.save();
+                ctx.translate(special.x, special.y);
+                ctx.rotate(special.rotation);
+                
+                // Отрисовка сюрикена (звезда с 4 лучами)
+                ctx.fillStyle = special.color;
+                ctx.beginPath();
+                for (let i = 0; i < 4; i++) {
+                    const angle = (Math.PI / 2) * i;
+                    ctx.lineTo(
+                        Math.cos(angle) * special.radius,
+                        Math.sin(angle) * special.radius
+                    );
+                    ctx.lineTo(
+                        Math.cos(angle + Math.PI/4) * special.radius * 0.5,
+                        Math.sin(angle + Math.PI/4) * special.radius * 0.5
+                    );
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ядро сюрикена
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, 0, special.radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                ctx.globalAlpha = 1;
+                ctx.shadowBlur = 0;
+            }
+            
+            // Отрисовка игрока
+            // Свечение игрока
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = player.color;
+            
+            // Основной круг игрока
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Внутренний круг
+            ctx.fillStyle = '#ff6666';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ядро игрока
+            const pulse = 0.8 + 0.2 * Math.sin(gameTime * 3);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius * 0.3 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            
+            // Отрисовка границы поля
+            ctx.strokeStyle = 'rgba(255, 50, 50, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+        }
+        
+        // Главный игровой цикл
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Обработчики клавиш
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            
+            if (e.code === 'KeyE') {
+                performAttack();
+            }
+            
+            if (e.code === 'KeyQ') {
+                performSpecialAttack();
+            }
+            
+            if (e.code === 'KeyF') {
+                performWaveAttack();
+            }
+            
+            // Перезапуск игры при нажатии R
+            if (e.code === 'KeyR' && gameOver) {
+                restartGame();
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // Перезапуск игры
+        function restartGame() {
+            player = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 20,
+                speed: 10,
+                color: '#ff3333',
+                health: 10,
+                maxHealth: 10,
+                stamina: 5,
+                maxStamina: 10,
+                specialCharge: 0,
+                specialMax: 6,
+                waveUnlocked: false,
+                waveCharge: 0,
+                waveMaxCharge: 30,
+                waveKills: 0,
+                lastSpecialUse: 0
+            };
+            
+            enemies = [];
+            crosses = [];
+            miniBosses = [];
+            shooterBosses = [];
+            waveBosses = [];
+            pinkBosses = [];
+            finalBoss = null;
+            attacks = [];
+            enemyAttacks = [];
+            shooterBossAttacks = [];
+            waveBossAttacks = [];
+            pinkBossAttacks = [];
+            finalBossShurikenAttacks = [];
+            finalBossMeleeAttacks = [];
+            waveAttacks = [];
+            particles = [];
+            specialAttacks = [];
+            
+            gameTime = 0;
+            enemySpawnRate = 1000;
+            lastEnemySpawn = 0;
+            lastHealthRegen = 0;
+            lastStaminaRegen = 0;
+            lastCrossSpawn = 0;
+            lastMiniBossSpawn = 0;
+            lastShooterBossSpawn = 0;
+            lastWaveBossSpawn = 0;
+            miniBossKillCount = 0;
+            bossSpawned = false;
+            bossWarningTime = 0;
+            abilityUnlockedTime = 0;
+            
+            gameOver = false;
+            gameStartTime = Date.now();
+            
+            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('bossWarning').style.opacity = 0;
+            document.getElementById('abilityUnlocked').style.opacity = 0;
+            document.getElementById('waveBar').style.display = 'none';
+        }
+        
+        // Запуск игры
+        gameLoop();
+    </script>
+</body>
+</html>
